@@ -1,0 +1,19 @@
+{
+  "name": "NEXTX Room",
+  "short_name": "NEXTX Room",
+  "description": "NEXTX Room — ფილმები, სერიალები და 131 ტელეარხი",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#070910",
+  "theme_color": "#070910",
+  "icons": [
+    {
+      "src": "Logo1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
