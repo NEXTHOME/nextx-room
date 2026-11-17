@@ -670,10 +670,12 @@
             hlsInstance = new Hls({
                 enableWorker: true,
                 lowLatencyMode: false,
-                maxBufferLength: 40,
-                maxMaxBufferLength: 90,
-                backBufferLength: 15,
-                liveSyncDurationCount: 3,
+                maxBufferLength: 18,
+                maxMaxBufferLength: 45,
+                backBufferLength: 10,
+                liveSyncDurationCount: 2,
+                initialLiveManifestSize: 1,
+                abrEwmaDefaultEstimate: 5000000,
                 startFragPrefetch: true,
                 fragLoadingMaxRetry: 4,
                 manifestLoadingMaxRetry: 3
@@ -696,6 +698,14 @@
                 }
             });
         } else {
+            pwaVideo.onerror = () => {
+                if (!isLive && movieObj && (movieObj.embedUrl || movieObj.okVideoId)) {
+                    const fbUrl = movieObj.okVideoId
+                        ? `https://ok.ru/videoembed/${movieObj.okVideoId}?autoplay=1`
+                        : movieObj.embedUrl;
+                    playIframeInPwa(fbUrl, movieObj.title, "🎬 Embed Player");
+                }
+            };
             pwaVideo.src = url;
             if (resumeMs > 5000) {
                 pwaVideo.addEventListener('loadedmetadata', function onMeta() {
