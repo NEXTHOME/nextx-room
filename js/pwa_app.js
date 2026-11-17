@@ -117,7 +117,7 @@
     let currentPlayingMovie = null;
 
     function openCaveaPortal() {
-        window.open('https://cavea.plus/ge/movies', '_blank');
+        switchTab('cavea');
     }
     if (btnCaveaTop) btnCaveaTop.addEventListener('click', openCaveaPortal);
 
@@ -207,12 +207,7 @@
     // Tabs
     document.querySelectorAll('.nav-item').forEach(btn => {
         btn.addEventListener('click', () => {
-            const tab = btn.dataset.tab;
-            if (tab === 'cavea') {
-                openCaveaPortal();
-                return;
-            }
-            switchTab(tab);
+            switchTab(btn.dataset.tab);
         });
     });
 
@@ -225,6 +220,18 @@
             tabCinema.classList.remove('active');
             tabTv.classList.add('active');
             renderTvList();
+        } else if (tab === 'cavea') {
+            tabTv.classList.remove('active');
+            tabCinema.classList.add('active');
+            cinemaFilters.style.display = 'none';
+            continueSection.style.display = 'none';
+            hasMorePages = false;
+            const caveaList = Array.isArray(window.CAVEA_FREE_MOVIES) ? window.CAVEA_FREE_MOVIES : [];
+            catalogTitle.textContent = "🍿 Cavea+ • უფასო ფილმები";
+            movies = caveaList;
+            catalogCount.textContent = movies.length + " ფილმი";
+            gridLoader.style.display = 'none';
+            renderMovies(movies);
         } else if (tab === 'favorites') {
             tabTv.classList.remove('active');
             tabCinema.classList.add('active');
@@ -529,6 +536,8 @@
                 });
                 dlgSourcesChips.appendChild(chip);
             });
+        } else if (movie.isCavea && movie.caveaSlug) {
+            dlgSourcesChips.innerHTML = '<span class="source-chip active">🍿 Cavea+ (უფასო HD)</span>';
         } else if (movie.embedUrl) {
             dlgSourcesChips.innerHTML = '<span class="source-chip active">🌐 გარე პლეერი (Safari/Web)</span>';
         } else {
@@ -544,6 +553,10 @@
 
     btnDlgPlay.addEventListener('click', () => {
         if (!selectedMovie) return;
+        if (selectedMovie.isCavea && selectedMovie.caveaSlug) {
+            window.open('https://cavea.plus/ge/movies/' + selectedMovie.caveaSlug, '_blank');
+            return;
+        }
         const streams = (selectedMovie.streams || []).filter(s => s && s.url && !s.url.endsWith('.html'));
         if (streams.length > 0) {
             const chosen = streams[selectedStreamIndex] || streams[0];
@@ -576,7 +589,7 @@
             row.className = 'tv-item';
             row.innerHTML = `
                 <span class="tv-num">${idx + 1}</span>
-                <img class="tv-logo" src="${ch.logo || 'icon.png'}" alt="" loading="lazy" onerror="this.src='icon.png'">
+                <img class="tv-logo" src="${ch.logo || 'icon.png'}" alt="" loading="lazy" decoding="async" onerror="this.src='icon.png'">
                 <div class="tv-info">
                     <div class="tv-name">${ch.name}</div>
                     <div class="tv-group">${ch.group || ''}</div>
@@ -619,12 +632,33 @@
                 pwaVideo.play().catch(() => {});
             });
         } else if (isHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
-            hlsInstance = new Hls();
+            hlsInstance = new Hls({
+                enableWorker: true,
+                lowLatencyMode: false,
+                maxBufferLength: 40,
+                maxMaxBufferLength: 90,
+                backBufferLength: 15,
+                liveSyncDurationCount: 3,
+                startFragPrefetch: true,
+                fragLoadingMaxRetry: 4,
+                manifestLoadingMaxRetry: 3
+            });
             hlsInstance.loadSource(url);
             hlsInstance.attachMedia(pwaVideo);
             hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
                 if (resumeMs > 5000) pwaVideo.currentTime = resumeMs / 1000;
                 pwaVideo.play().catch(() => {});
+            });
+            let retriedFb = false;
+            hlsInstance.on(Hls.Events.ERROR, (ev, data) => {
+                if (data && data.fatal && isLive && !retriedFb) {
+                    const ch = ALL_CHANNELS[currentChannelIdx];
+                    const fb = ch && (ch.fallbackUrl || (url.startsWith('https://') ? url.replace('https://', 'http://') : null));
+                    if (fb && fb !== url) {
+                        retriedFb = true;
+                        hlsInstance.loadSource(fb);
+                    }
+                }
             });
         } else {
             pwaVideo.src = url;
