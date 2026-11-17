@@ -576,7 +576,7 @@
         } else if (selectedMovie.tmdbId) {
             closeMovieSheet();
             const kType = selectedMovie.isSeries ? 'serial' : 'movie';
-            playIframeInPwa(`https://em.kinoflix.tv/${kType}?tmdb_id=${selectedMovie.tmdbId}&lang=ka`, selectedMovie.title, "🎬 HD სტრიმი");
+            playIframeInPwa(`https://em.kinoflix.tv/embed/${kType}/${selectedMovie.tmdbId}?lang=ka`, selectedMovie.title, "🎬 HD სტრიმი");
         } else {
             alert("სამწუხაროდ ამ ფილმის სტრიმი ვერ მოიძებნა");
         }
@@ -643,6 +643,9 @@
     }
 
     function playInPwaPlayer(url, title, sub, isLive, movieObj, resumeMs) {
+        if (location.protocol === 'https:' && url && url.startsWith('http://')) {
+            url = url.replace('http://', 'https://');
+        }
         currentPlayingMovie = movieObj;
         pwaPlayerTitle.textContent = title || "NEXTX Room";
         pwaPlayerSub.textContent = sub || "";

@@ -1,21 +1,15 @@
-const CACHE_NAME = 'nextx-room-pwa-v4';
-const ASSETS = [
-  './',
-  './index.html',
-  './css/mobile.css',
-  './js/pwa_app.js',
-  './Logo1.png',
-  './icon.png'
-];
+const CACHE_NAME = 'nextx-room-pwa-v5';
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(self.clients.claim());
+  e.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (e) => {
@@ -23,6 +17,12 @@ self.addEventListener('fetch', (e) => {
   const url = e.request.url;
   if (url.includes('.m3u8') || url.includes('.ts') || url.includes('themoviedb.org')) return;
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request))
+    fetch(e.request)
+      .then((res) => {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(e.request, clone)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
