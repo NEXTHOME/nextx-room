@@ -110,6 +110,7 @@
     const pwaPlayerTitle = document.getElementById('pwa-player-title');
     const pwaPlayerSub = document.getElementById('pwa-player-sub');
     const pwaVideo = document.getElementById('pwa-video');
+    const pwaIframe = document.getElementById('pwa-iframe');
     const pwaPlayerActions = document.getElementById('pwa-player-actions');
 
     let hlsInstance = null;
@@ -538,10 +539,14 @@
             });
         } else if (movie.isCavea && movie.caveaSlug) {
             dlgSourcesChips.innerHTML = '<span class="source-chip active">🍿 Cavea+ (უფასო HD)</span>';
+        } else if (movie.okVideoId) {
+            dlgSourcesChips.innerHTML = '<span class="source-chip active">🇬🇪 ქართულად (OK.ru HD)</span>';
         } else if (movie.embedUrl) {
-            dlgSourcesChips.innerHTML = '<span class="source-chip active">🌐 გარე პლეერი (Safari/Web)</span>';
+            dlgSourcesChips.innerHTML = '<span class="source-chip active">🇬🇪 ქართულად (Embed HD)</span>';
+        } else if (movie.tmdbId) {
+            dlgSourcesChips.innerHTML = '<span class="source-chip active">🎬 HD სტრიმი (Kinoflix / Player)</span>';
         } else {
-            dlgSourcesChips.innerHTML = '<span class="source-chip">⚠️ პირდაპირი სტრიმი ამ ფილმზე სერვერს საჭიროებს</span>';
+            dlgSourcesChips.innerHTML = '<span class="source-chip">⚠️ სტრიმი ვერ მოიძებნა</span>';
         }
         sheetBackdrop.classList.add('open');
     }
@@ -562,12 +567,37 @@
             const chosen = streams[selectedStreamIndex] || streams[0];
             closeMovieSheet();
             playInPwaPlayer(chosen.url, selectedMovie.title, chosen.label || "FullHD", false, selectedMovie, pendingResumeMs);
+        } else if (selectedMovie.okVideoId) {
+            closeMovieSheet();
+            playIframeInPwa(`https://ok.ru/videoembed/${selectedMovie.okVideoId}?autoplay=1`, selectedMovie.title, "🇬🇪 ქართულად • OK.ru");
         } else if (selectedMovie.embedUrl) {
-            window.open(selectedMovie.embedUrl, '_blank');
+            closeMovieSheet();
+            playIframeInPwa(selectedMovie.embedUrl, selectedMovie.title, "🇬🇪 ქართულად • HD");
+        } else if (selectedMovie.tmdbId) {
+            closeMovieSheet();
+            const kType = selectedMovie.isSeries ? 'serial' : 'movie';
+            playIframeInPwa(`https://em.kinoflix.tv/${kType}?tmdb_id=${selectedMovie.tmdbId}&lang=ka`, selectedMovie.title, "🎬 HD სტრიმი");
         } else {
-            alert("ამ ფილმის სტრიმი ბრაუზერში CORS შეზღუდვის გამო სერვერს საჭიროებს.");
+            alert("სამწუხაროდ ამ ფილმის სტრიმი ვერ მოიძებნა");
         }
     });
+
+    function playIframeInPwa(iframeUrl, title, sub) {
+        if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        if (pwaIframe) { pwaIframe.style.display = 'none'; pwaIframe.src = 'about:blank'; }
+        pwaVideo.style.display = 'block';
+        pwaVideo.pause();
+        pwaVideo.removeAttribute('src');
+        pwaVideo.style.display = 'none';
+        if (pwaIframe) {
+            pwaIframe.style.display = 'block';
+            pwaIframe.src = iframeUrl;
+        }
+        pwaPlayerTitle.textContent = title || "NEXTX Room";
+        pwaPlayerSub.textContent = sub || "";
+        pwaPlayerActions.innerHTML = '';
+        pwaPlayerModal.classList.add('open');
+    }
 
     // Live TV List
     function renderTvList() {
@@ -619,6 +649,8 @@
         pwaPlayerModal.classList.add('open');
 
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        if (pwaIframe) { pwaIframe.style.display = 'none'; pwaIframe.src = 'about:blank'; }
+        pwaVideo.style.display = 'block';
         pwaVideo.pause();
         pwaVideo.removeAttribute('src');
 
@@ -710,6 +742,8 @@
             saveContinueItem(currentPlayingMovie, pwaVideo.currentTime, pwaVideo.duration);
         }
         if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+        if (pwaIframe) { pwaIframe.style.display = 'none'; pwaIframe.src = 'about:blank'; }
+        pwaVideo.style.display = 'block';
         pwaVideo.pause();
         pwaVideo.removeAttribute('src');
         pwaPlayerModal.classList.remove('open');

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nextx-room-pwa-v2';
+const CACHE_NAME = 'nextx-room-pwa-v3';
 const ASSETS = [
   './',
   './index.html',
